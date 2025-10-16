@@ -1,0 +1,32 @@
+// Simplified TensorFlow Example proto for SequenceExample
+syntax = "proto3";
+
+package tensorflow;
+
+message SequenceExample {
+  map<string, FeatureList> feature_lists = 2;
+}
+
+message FeatureList {
+  repeated Feature feature = 1;
+}
+
+message Feature {
+  oneof kind {
+    BytesList bytes_list = 1;
+    FloatList float_list = 2;
+    Int64List int64_list = 3;
+  }
+}
+
+message BytesList {
+  repeated bytes value = 1;
+}
+
+message FloatList {
+  repeated float value = 1;
+}
+
+message Int64List {
+  repeated int64 value = 1;
+}

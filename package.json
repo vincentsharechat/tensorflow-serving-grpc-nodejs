@@ -1,0 +1,16 @@
+{
+  "name": "grpc-inference-client",
+  "version": "1.0.0",
+  "description": "Simple gRPC client for DNB inference service",
+  "main": "src/client.js",
+  "scripts": {
+    "test-proto": "node src/test-proto.js",
+    "test-connection": "node src/test-connection.js",
+    "test-request": "node src/test-request.js"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.9.0",
+    "@grpc/proto-loader": "^0.7.10",
+    "protobufjs": "^7.5.4"
+  }
+}

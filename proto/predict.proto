@@ -1,0 +1,31 @@
+// TensorFlow Serving prediction proto
+syntax = "proto3";
+
+package tensorflow.serving;
+
+import "tensor.proto";
+
+message ModelSpec {
+  string name = 1;
+
+  message Version {
+    int64 value = 1;
+  }
+  Version version = 2;
+
+  string signature_name = 3;
+}
+
+message PredictRequest {
+  ModelSpec model_spec = 1;
+  map<string, tensorflow.TensorProto> inputs = 2;
+}
+
+message PredictResponse {
+  map<string, tensorflow.TensorProto> outputs = 1;  // Outputs come first!
+  ModelSpec model_spec = 2;
+}
+
+service PredictionService {
+  rpc Predict(PredictRequest) returns (PredictResponse);
+}

@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Certificates (keep ingress.crt as example)
+# ingress.crt
+
+# Temporary files
+*.tmp
+.cache/
+
+# Build outputs (if any)
+dist/
+build/
