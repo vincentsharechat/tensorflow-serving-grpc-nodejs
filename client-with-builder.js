@@ -1,23 +1,19 @@
 #!/usr/bin/env node
 /**
- * ✅ WORKING gRPC Inference Client for TensorFlow Serving
+ * ✅ Complete gRPC Client with SequenceExample Builder
  *
- * This client successfully makes predictions using:
- * - Correct proto field numbers (signature_name=3, outputs=1)
- * - @grpc/proto-loader for proper Google protobuf compatibility
- * - Direct pod connection to TensorFlow Serving
+ * This example shows how to:
+ * 1. Build a SequenceExample from feature data
+ * 2. Serialize it to binary using protobufjs
+ * 3. Send it to TensorFlow Serving using @grpc/grpc-js
  */
 
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const path = require('path');
+const { buildSequenceExample, toHex } = require('./sequence-example-builder');
 
 // ==================== CONFIGURATION ====================
-
-// Your serialized SequenceExample from Python
-// Get this by running: print(serialized_example.hex())
-// const SERIALIZED_EXAMPLE_HEX = "12f4030a170a0c69735f726573706f6e64656412070a051a030a01000a1d0a12666565645f66657463685f636f756e74657212070a050a030a01320a170a096f7356657273696f6e120a0a080a060a04726573740a150a09736f7572636541707012080a060a040a0253430a190a046369747912110a0f0a0d0a0b63686974726164757267610a1a0a0675736572696412100a0e0a0c0a0a323534353236343837320a250a0a70686f6e654d6f64656c12170a150a130a117869616f6d6920323230343132313970690a1e0a0c70686f6e6543617272696572120e0a0c0a0a0a08766920696e6469610a180a057374617465120f0a0d0a0b0a096b61726e6174616b610a170a086c616e6775616765120b0a090a070a0574616d696c0a190a0b77696e6e696e675f626964120a0a0812060a04000000000a170a0861676552616e6765120b0a090a070a0531382d32340a210a0474696d6512190a170a150a13323032352d31302d31302030393a32313a33340a190a0b666c6f6f725f7072696365120a0a0812060a040000a0400a1d0a0761645f7479706512120a100a0e0a0c53435f4f555453545245414d0a110a0667656e64657212070a050a030a01460a350a0761647375756964122a0a280a260a2465356332663339342d303233652d343338332d393264302d623238663137633130653465";
-const SERIALIZED_EXAMPLE_HEX = "1299030a170a0861676552616e6765120b0a090a070a0531382d32340a150a09736f7572636541707012080a060a040a0253430a1a0a0761645f74797065120f0a0d0a0b0a0953435f435043565f310a110a0667656e64657212070a050a030a01460a140a0463697479120c0a0a0a080a066b6f7070616c0a350a0761647375756964122a0a280a260a2430353332616662622d336338352d343737362d623563362d6439303861343763313434310a1d0a12666565645f66657463685f636f756e74657212070a050a030a01310a170a086c616e6775616765120b0a090a070a0574616d696c0a210a0474696d6512190a170a150a13323032352d31302d31302032323a30323a32340a200a0a70686f6e654d6f64656c12120a100a0e0a0c6f70706f20637068323638310a180a057374617465120f0a0d0a0b0a096b61726e6174616b610a170a096f7356657273696f6e120a0a080a060a04726573740a200a0c70686f6e654361727269657212100a0e0a0c0a0a696e642061697274656c0a190a06757365726964120f0a0d0a0b0a09373439363033323935";
 
 const MODEL_NAME = 'dnb_model_baseline';
 const SIGNATURE_NAME = 'serving_default';
@@ -25,10 +21,40 @@ const ENDPOINT = '100.68.113.134:9500';
 
 // ==================== MAIN CODE ====================
 
-async function makePrediction() {
-  console.log('🚀 TensorFlow Serving gRPC Inference Client\n');
+async function makePredictionWithBuilder() {
+  console.log('🚀 TensorFlow Serving gRPC Client with Builder\n');
 
-  // Load proto definitions using proto-loader
+  // ========== STEP 1: Define your feature data ==========
+  const featureListsData = {
+    "ad_type": ["SC_CPCV_1"],
+    "adsuuid": ["0532afbb-3c85-4776-b5c6-d908a47c1441"],
+    "ageRange": ["18-24"],
+    "city": ["koppal"],
+    "feed_fetch_counter": ["1"],
+    "gender": ["F"],
+    "language": ["tamil"],
+    "osVersion": ["rest"],
+    "phoneCarrier": ["ind airtel"],
+    "phoneModel": ["oppo cph2681"],
+    "sourceApp": ["SC"],
+    "state": ["karnataka"],
+    "time": ["2025-10-10 22:02:24"],
+    "userid": ["749603295"]
+  };
+
+  console.log('📝 Feature lists:');
+  console.log(JSON.stringify(featureListsData, null, 2));
+  console.log('');
+
+  // ========== STEP 2: Build and serialize SequenceExample ==========
+  console.log('🔧 Building SequenceExample...');
+  const serializedExample = buildSequenceExample(featureListsData);
+
+  console.log(`✅ Serialized to ${serializedExample.length} bytes`);
+  console.log(`🔤 Hex: ${toHex(serializedExample).substring(0, 60)}...`);
+  console.log('');
+
+  // ========== STEP 3: Load gRPC proto and create client ==========
   const PROTO_PATH = path.join(__dirname, 'proto/predict.proto');
   const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
     keepCase: true,
@@ -42,22 +68,17 @@ async function makePrediction() {
   const protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
   const PredictionService = protoDescriptor.tensorflow.serving.PredictionService;
 
-  // Create gRPC client
   const client = new PredictionService(
     ENDPOINT,
     grpc.credentials.createInsecure()
   );
 
-  // Deserialize the example
-  const serializedExample = Buffer.from(SERIALIZED_EXAMPLE_HEX, 'hex');
-
-  console.log('📦 Input: SequenceExample', serializedExample.length, 'bytes');
+  // ========== STEP 4: Make prediction request ==========
   console.log('🎯 Model:', MODEL_NAME);
   console.log('📝 Signature:', SIGNATURE_NAME);
   console.log('🔗 Endpoint:', ENDPOINT);
   console.log('\n⏳ Making inference request...\n');
 
-  // Create request (using snake_case for proto-loader)
   const request = {
     model_spec: {
       name: MODEL_NAME,
@@ -87,7 +108,6 @@ async function makePrediction() {
     console.log('📊 MODEL PREDICTIONS\n');
 
     if (response.outputs) {
-      // Sort outputs for consistent display
       const outputNames = Object.keys(response.outputs).sort();
 
       for (const outputName of outputNames) {
@@ -125,4 +145,4 @@ async function makePrediction() {
 }
 
 // Run it
-makePrediction().catch(console.error);
+makePredictionWithBuilder().catch(console.error);

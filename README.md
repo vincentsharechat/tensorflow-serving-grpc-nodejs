@@ -50,7 +50,32 @@ node final-working-client.js
 
 ## 📖 Usage
 
-### With Your Own Data
+### Option 1: Build SequenceExample in Node.js (NEW! ⭐)
+
+Build and serialize SequenceExample directly in Node.js (no Python needed):
+
+```javascript
+const { buildSequenceExample } = require('./sequence-example-builder');
+
+// Define your features
+const features = {
+  "ad_type": ["SC_CPCV_1"],
+  "userid": ["749603295"],
+  "ageRange": ["18-24"]
+};
+
+// Serialize (equivalent to Python's SerializeToString())
+const serialized = buildSequenceExample(features);
+```
+
+**Run the example:**
+```bash
+node client-with-builder.js
+```
+
+**Documentation:** See [SEQUENCE_EXAMPLE_GUIDE.md](SEQUENCE_EXAMPLE_GUIDE.md) for full API reference
+
+### Option 2: Pre-serialize with Python
 
 1. **Serialize your SequenceExample in Python:**
 
@@ -117,13 +142,15 @@ We use `@grpc/proto-loader` instead of `protobufjs` because:
 ```
 grpc-inference-client/
 ├── proto/
-│   ├── predict.proto       # TF Serving prediction service (FIXED field numbers)
-│   ├── tensor.proto        # TensorFlow tensor definitions
-│   └── example.proto       # SequenceExample format
-├── src/
-│   └── request-builder.js  # Helper to build SequenceExample
-├── examples/               # Debug and test scripts
-├── final-working-client.js # ✅ Main working example
+│   ├── predict.proto              # TF Serving prediction service (FIXED field numbers)
+│   ├── tensor.proto               # TensorFlow tensor definitions
+│   └── example.proto              # SequenceExample format (with FeatureLists wrapper)
+├── sequence-example-builder.js    # ⭐ NEW: Build & serialize SequenceExample
+├── client-with-builder.js         # ⭐ NEW: Full gRPC client with builder
+├── test-serialization.js          # ⭐ NEW: Test suite
+├── final-working-client.js        # ✅ Original working example (pre-serialized hex)
+├── SEQUENCE_EXAMPLE_GUIDE.md      # ⭐ NEW: Complete builder documentation
+├── BUGFIX_SUMMARY.md              # ⭐ NEW: Technical proto structure details
 ├── package.json
 └── README.md
 ```
