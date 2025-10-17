@@ -1,10 +1,20 @@
-// Simplified TensorFlow Example proto for SequenceExample
+// TensorFlow Example proto for SequenceExample
+// Matches the structure from tensorflow/core/example/example.proto
 syntax = "proto3";
 
 package tensorflow;
 
 message SequenceExample {
-  map<string, FeatureList> feature_lists = 2;
+  Features context = 1;
+  FeatureLists feature_lists = 2;
+}
+
+message Features {
+  map<string, Feature> feature = 1;
+}
+
+message FeatureLists {
+  map<string, FeatureList> feature_list = 1;
 }
 
 message FeatureList {
