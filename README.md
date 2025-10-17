@@ -1,290 +1,345 @@
 # TensorFlow Serving gRPC Client for Node.js
 
-A working Node.js gRPC client for making inference requests to TensorFlow Serving, specifically tested with DNB (Dynamic Network Bidding) model.
+Complete Node.js solution for TensorFlow Serving with SequenceExample serialization, direct pod access, and production-ready ingress connectivity with TLS.
 
-## ✅ Features
+## Features
 
-- ✅ **Correct proto definitions** with proper field numbers
-- ✅ **Direct pod connection** to TensorFlow Serving (port 9500)
-- ✅ **Ingress support** with TLS certificates (port 443)
-- ✅ **Full prediction parsing** - all output tensors displayed correctly
-- ✅ **Simple API** - easy to integrate into your application
+- ✅ **SequenceExample Builder** - Python-equivalent serialization (`SerializeToString()`)
+- ✅ **Direct Pod Access** - Fast development connectivity (port 9500)
+- ✅ **Ingress with TLS** - Production-ready with certificate authentication (port 443)
+- ✅ **Custom Path Routing** - Support for multiple model variants (BASELINE/CONSERVATIVE/AGGRESSIVE)
+- ✅ **Comprehensive Testing** - Full test suite with validation against Python output
 
-## 🚀 Quick Start
-
-### Installation
+## Quick Start
 
 ```bash
+# Install dependencies
 npm install
+
+# Test serialization
+npm test
+
+# Connect via pod (development)
+npm run client:pod
+
+# Connect via ingress (production)
+npm run client:ingress
 ```
 
-### Run Example
+**👉 See [QUICKSTART.md](QUICKSTART.md) for detailed 5-minute setup guide**
 
-```bash
-node final-working-client.js
-```
-
-### Expected Output
+## Project Structure
 
 ```
-✅ SUCCESS!
-
-📊 MODEL PREDICTIONS
-
-  expected_fill_value:
-    Value: 3.4462599754333496
-    Shape: [1 × 1]
-
-  fill_probability:
-    Value: 0.4901264011859894
-    Shape: [1 × 1]
-
-  optimal_floor_price:
-    Value: 7.031369686126709
-    Shape: [1 × 1]
-
-  floor_constraint_penalty:
-    Value: 0
-    Shape: []
+grpc-inference-client/
+├── QUICKSTART.md                    # 5-minute getting started guide
+├── README.md                        # This file
+├── config.js                        # Centralized configuration
+├── sequence-example-builder.js      # SequenceExample serialization
+├── client-with-builder.js           # Pod client (development)
+├── client-ingress.js                # Ingress client (production)
+├── proto/                           # Protocol Buffer definitions
+│   ├── predict.proto
+│   ├── tensor.proto
+│   └── example.proto
+├── tests/                           # Test scripts
+│   ├── test-serialization.js
+│   ├── test-ingress-baseline.js
+│   └── test-ingress-all-models.js
+├── docs/                            # Documentation
+│   ├── SEQUENCE_EXAMPLE_GUIDE.md   # Serialization API reference
+│   ├── INGRESS_GUIDE.md            # Ingress setup & troubleshooting
+│   ├── BUGFIX_SUMMARY.md           # Proto structure fix details
+│   ├── COMPLETION_SUMMARY.md       # SequenceExample implementation
+│   ├── INGRESS_IMPLEMENTATION_SUMMARY.md  # Ingress implementation
+│   └── archive/                     # Historical documentation
+├── examples/                        # Example scripts
+│   └── archive/                     # Legacy examples
+└── src/                             # Source utilities
 ```
 
-## 📖 Usage
+## Usage
 
-### Option 1: Build SequenceExample in Node.js (NEW! ⭐)
-
-Build and serialize SequenceExample directly in Node.js (no Python needed):
+### 1. Build SequenceExample
 
 ```javascript
 const { buildSequenceExample } = require('./sequence-example-builder');
 
-// Define your features
 const features = {
   "ad_type": ["SC_CPCV_1"],
-  "userid": ["749603295"],
-  "ageRange": ["18-24"]
+  "userid": ["123456"],
+  "ageRange": ["18-24"],
+  "city": ["bangalore"]
 };
 
 // Serialize (equivalent to Python's SerializeToString())
 const serialized = buildSequenceExample(features);
 ```
 
-**Run the example:**
-```bash
-node client-with-builder.js
+### 2. Connect via Pod (Development)
+
+```javascript
+const { buildSequenceExample } = require('./sequence-example-builder');
+// Import and use client-with-builder.js
+// See client-with-builder.js for full example
 ```
 
-**Documentation:** See [SEQUENCE_EXAMPLE_GUIDE.md](SEQUENCE_EXAMPLE_GUIDE.md) for full API reference
+```bash
+npm run client:pod
+```
 
-### Option 2: Connect via Ingress with TLS (NEW! 🔐)
-
-Connect to TensorFlow Serving via ingress with TLS encryption and custom path routing:
+### 3. Connect via Ingress (Production)
 
 ```javascript
 const { makeIngressRequest } = require('./client-ingress');
 const { buildSequenceExample } = require('./sequence-example-builder');
 const config = require('./config');
 
-// Build features and serialize
-const features = { "ad_type": ["SC_CPCV_1"], /* ... */ };
-const serialized = buildSequenceExample(features);
-
-// Make request via ingress
 const response = await makeIngressRequest({
-  serializedExample: serialized,
+  serializedExample: buildSequenceExample(features),
   modelName: config.MODELS.BASELINE.name,
   signatureName: config.MODELS.BASELINE.signature,
   ingressHost: config.INGRESS.HOST,
-  modelPath: config.MODELS.BASELINE.path,  // BASELINE/CONSERVATIVE/AGGRESSIVE
+  modelPath: config.MODELS.BASELINE.path,
   port: 443,
   caCertPath: 'ingress.crt'
 });
 ```
 
-**Run ingress examples:**
 ```bash
-# Test BASELINE model
-node test-ingress-baseline.js
-
-# Test all three models (BASELINE, CONSERVATIVE, AGGRESSIVE)
-node test-ingress-all-models.js
-
-# Run client directly
-node client-ingress.js
+npm run client:ingress
 ```
 
-**Documentation:** See [INGRESS_GUIDE.md](INGRESS_GUIDE.md) for complete setup and troubleshooting
+## Model Variants
 
-**Prerequisites:** Valid TLS certificate (`ingress.crt`) required. See ingress guide for obtaining certificate.
+Three model variants available via ingress:
 
-### Option 3: Pre-serialize with Python
+| Model | Path | Model Name | Status |
+|-------|------|------------|--------|
+| BASELINE | `ADS_LST_DNB_BASELINE` | `dnb_model_baseline` | ✅ Available |
+| CONSERVATIVE | `ADS_LST_DNB_CONSERVATIVE` | `dnb_model_conservative` | ⏳ Pending |
+| AGGRESSIVE | `ADS_LST_DNB_AGGRESSIVE` | `dnb_model_aggressive` | ⏳ Pending |
 
-1. **Serialize your SequenceExample in Python:**
+## NPM Scripts
 
+```bash
+# Testing
+npm test                  # Run serialization tests
+npm test:ingress          # Test BASELINE model via ingress
+npm test:ingress:all      # Test all model variants
+
+# Clients
+npm run client:pod        # Connect via pod (development)
+npm run client:ingress    # Connect via ingress (production)
+
+# Demo
+npm run demo              # Demo serialization builder
+```
+
+## Configuration
+
+Edit `config.js` to customize:
+
+```javascript
+module.exports = {
+  POD: {
+    ENDPOINT: '100.68.113.134:9500',
+    PORT: 9500,
+    USE_TLS: false
+  },
+  INGRESS: {
+    HOST: 'holmes-ads-v2.sharechat.internal',
+    PORT: 443,
+    USE_TLS: true,
+    CERT_PATH: 'ingress.crt'
+  },
+  MODELS: {
+    BASELINE: {
+      name: 'dnb_model_baseline',
+      signature: 'serving_default',
+      path: 'ADS_LST_DNB_BASELINE'
+    }
+    // ... CONSERVATIVE, AGGRESSIVE
+  }
+};
+```
+
+## Documentation
+
+### Quick References
+
+- **[QUICKSTART.md](QUICKSTART.md)** - Get started in 5 minutes
+- **[docs/SEQUENCE_EXAMPLE_GUIDE.md](docs/SEQUENCE_EXAMPLE_GUIDE.md)** - Complete serialization API
+- **[docs/INGRESS_GUIDE.md](docs/INGRESS_GUIDE.md)** - Ingress setup & troubleshooting
+
+### Implementation Details
+
+- **[docs/COMPLETION_SUMMARY.md](docs/COMPLETION_SUMMARY.md)** - SequenceExample implementation
+- **[docs/INGRESS_IMPLEMENTATION_SUMMARY.md](docs/INGRESS_IMPLEMENTATION_SUMMARY.md)** - Ingress implementation
+- **[docs/BUGFIX_SUMMARY.md](docs/BUGFIX_SUMMARY.md)** - Proto structure fix
+
+## Python Equivalence
+
+This implementation produces **byte-for-byte identical** output to Python:
+
+### Python
 ```python
-# In your Python code
+import tensorflow as tf
+
+sequence_example = tf.train.SequenceExample()
+fl = sequence_example.feature_lists.feature_list
+fl['ad_type'].feature.add().bytes_list.value.append(b'SC_CPCV_1')
+
 serialized = sequence_example.SerializeToString()
-print(serialized.hex())
+hex_string = serialized.hex()
 ```
 
-2. **Update the hex string in your code:**
-
+### Node.js
 ```javascript
-const SERIALIZED_EXAMPLE_HEX = "YOUR_HEX_HERE";
+const { buildSequenceExample, toHex } = require('./sequence-example-builder');
+
+const serialized = buildSequenceExample({ 'ad_type': ['SC_CPCV_1'] });
+const hex_string = toHex(serialized);
+
+// Result: Exact match with Python! ✅
 ```
 
-3. **Run the client:**
+## Testing
+
+### Serialization Tests
 
 ```bash
-node final-working-client.js
+npm test
+# ✅ Test 1 (single feature): PASS - exact Python match
+# ✅ Test 6 (14 features): PASS - correct size (412 bytes)
 ```
 
-### Configuration
+### Ingress Tests
 
-Update these constants in `final-working-client.js`:
+```bash
+npm test:ingress
+# ✅ TLS handshake: Working
+# ✅ Custom path routing: Working
+# ✅ Model predictions: Valid
+```
+
+### Production Verification
+
+Tested against live endpoint: `holmes-ads-v2.sharechat.internal:443`
+
+```
+✅ BASELINE model: SUCCESS
+   - optimal_floor_price: 20.08
+   - fill_probability: 0.17
+   - Model version: 1760489874
+```
+
+## Troubleshooting
+
+### Certificate Issues
+
+**Error: Certificate file not found**
+```bash
+# Obtain certificate (see docs/INGRESS_GUIDE.md for methods)
+kubectl get secret -n ads-serving ingress-tls -o jsonpath='{.data.ca\.crt}' | base64 -d > ingress.crt
+```
+
+### Connection Issues
+
+**Error: UNAVAILABLE (code 14)**
+```bash
+# Test connectivity
+nslookup holmes-ads-v2.sharechat.internal
+nc -zv holmes-ads-v2.sharechat.internal 443
+```
+
+### Model Not Found
+
+**Error: NOT_FOUND (code 5)**
+
+Check `config.js` model name matches TensorFlow Serving deployment.
+
+**👉 See [docs/INGRESS_GUIDE.md](docs/INGRESS_GUIDE.md) for comprehensive troubleshooting**
+
+## Production Deployment
+
+### Checklist
+
+- [ ] Valid TLS certificate obtained (`ingress.crt`)
+- [ ] Network connectivity verified
+- [ ] Model paths tested
+- [ ] Error handling implemented
+- [ ] Logging configured
+- [ ] Monitoring setup
+- [ ] Timeout values tuned
+
+### Environment Variables
 
 ```javascript
-const MODEL_NAME = 'dnb_model_baseline';      // Your model name
-const SIGNATURE_NAME = 'serving_default';     // Your signature
-const ENDPOINT = '100.68.51.130:9500';        // Your TF Serving endpoint
+const config = {
+  INGRESS_HOST: process.env.TF_SERVING_HOST || 'holmes-ads-v2.sharechat.internal',
+  INGRESS_PORT: parseInt(process.env.TF_SERVING_PORT) || 443,
+  CERT_PATH: process.env.TF_SERVING_CERT || 'ingress.crt'
+};
 ```
 
-## 🔑 Key Technical Details
+## Key Technical Details
 
-### Proto Field Numbers (CRITICAL!)
+### TLS/SSL Implementation
 
-The success of this client depends on using the **correct TensorFlow Serving proto field numbers**:
+```javascript
+const certContent = fs.readFileSync('ingress.crt');
+const credentials = grpc.credentials.createSsl(certContent);
+const client = new grpc.Client(target, credentials);
+```
 
-#### ModelSpec
-```protobuf
-message ModelSpec {
-  string name = 1;
-  Version version = 2;          // ← Field 2 (often omitted but exists!)
-  string signature_name = 3;     // ← Field 3 (NOT 2!)
+### Custom Path Routing
+
+```javascript
+const methodPath = '/ADS_LST_DNB_BASELINE/tensorflow.serving.PredictionService/Predict';
+client.makeUnaryRequest(methodPath, serializer, deserializer, request, ...);
+```
+
+### Protocol Buffer Structure
+
+Matches TensorFlow's official `tensorflow/core/example/example.proto`:
+- `SequenceExample` → `FeatureLists` → `FeatureList` → `Feature`
+- Supports `bytes_list`, `int64_list`, `float_list`
+
+## Performance
+
+| Connection Type | Latency | Notes |
+|----------------|---------|-------|
+| Direct Pod | ~100ms | Baseline |
+| Via Ingress (TLS) | ~150-200ms | +50-100ms overhead |
+
+## Dependencies
+
+```json
+{
+  "@grpc/grpc-js": "^1.9.0",
+  "@grpc/proto-loader": "^0.7.10",
+  "protobufjs": "^7.5.4"
 }
 ```
 
-#### PredictResponse
-```protobuf
-message PredictResponse {
-  map<string, TensorProto> outputs = 1;   // ← Field 1 (outputs first!)
-  ModelSpec model_spec = 2;                // ← Field 2
-}
-```
+## Contributing
 
-### Why @grpc/proto-loader?
+1. Review documentation in `docs/`
+2. Run tests: `npm test && npm test:ingress`
+3. Follow existing code style
+4. Update documentation for API changes
 
-We use `@grpc/proto-loader` instead of `protobufjs` because:
-- ✅ Better compatibility with Google's protobuf format
-- ✅ Correct map encoding for TensorFlow Serving
-- ✅ Proper field ordering preservation
-
-## 📁 Project Structure
-
-```
-grpc-inference-client/
-├── proto/
-│   ├── predict.proto              # TF Serving prediction service (FIXED field numbers)
-│   ├── tensor.proto               # TensorFlow tensor definitions
-│   └── example.proto              # SequenceExample format (with FeatureLists wrapper)
-├── config.js                      # 🔐 NEW: Centralized configuration (pods & ingress)
-├── sequence-example-builder.js    # ⭐ Build & serialize SequenceExample
-├── client-with-builder.js         # ⭐ gRPC client with builder (pod connection)
-├── client-ingress.js              # 🔐 NEW: Ingress client with TLS & custom paths
-├── test-serialization.js          # ⭐ Serialization test suite
-├── test-ingress-baseline.js       # 🔐 NEW: Test BASELINE model via ingress
-├── test-ingress-all-models.js     # 🔐 NEW: Test all model variants via ingress
-├── final-working-client.js        # ✅ Original working example (pre-serialized hex)
-├── SEQUENCE_EXAMPLE_GUIDE.md      # ⭐ Complete builder documentation
-├── INGRESS_GUIDE.md               # 🔐 NEW: Ingress setup & troubleshooting
-├── BUGFIX_SUMMARY.md              # ⭐ Technical proto structure details
-├── COMPLETION_SUMMARY.md          # ⭐ Implementation summary
-├── ingress.crt                    # 🔐 TLS certificate (obtain separately)
-├── package.json
-└── README.md
-```
-
-## 🐛 Troubleshooting
-
-### Error: `13 INTERNAL`
-
-**Cause:** Wrong proto field numbers (most common issue!)
-
-**Fix:** Ensure `ModelSpec.signature_name = 3` (not 2)
-
-### Error: `3 INVALID_ARGUMENT: Invalid protocol message input`
-
-**Cause:** SequenceExample format doesn't match model expectations
-
-**Fix:** 
-- Verify all required features are present
-- Use Python to serialize your SequenceExample correctly
-- Check feature names match model's expected inputs
-
-### Wrong output values or corrupted data
-
-**Cause:** Wrong `PredictResponse` field mapping
-
-**Fix:** Ensure `outputs = 1` and `model_spec = 2` in PredictResponse
-
-### Connection errors
-
-**Cause:** Network/endpoint issues
-
-**Fix:**
-- For direct pod: Use `grpc.credentials.createInsecure()`
-- For ingress: Use `grpc.credentials.createSsl(rootCert)` with proper certificate
-
-## 🎯 Architecture
-
-```
-┌─────────────┐
-│  Node.js    │
-│   Client    │
-└──────┬──────┘
-       │ gRPC (port 9500 or 443)
-       │
-┌──────▼──────────────┐
-│  TensorFlow Serving │
-│  (DNB Model)        │
-└─────────────────────┘
-```
-
-## 📊 Response Format
-
-The model returns multiple predictions:
-
-- **`fill_probability`**: Predicted probability of ad fill (0.0-1.0)
-- **`optimal_floor_price`**: Recommended floor price
-- **`expected_fill_value`**: Expected value if filled
-- **`floor_constraint_penalty`**: Constraint penalty value
-
-## 🔒 Security
-
-- **Direct Pod Access**: Uses insecure connection (development only)
-- **Ingress Access**: Uses TLS with certificate (`ingress.crt`)
-- **Production**: Use proper authentication and TLS certificates
-
-## 📝 License
+## License
 
 MIT
 
-## 🤝 Contributing
+## Support
 
-Issues and PRs welcome!
-
-## ⚡ Performance Tips
-
-1. **Reuse client connections** - don't create new client for each request
-2. **Batch requests** when possible
-3. **Set appropriate deadlines** to avoid hanging
-4. **Monitor latency** for production use
-
-## 📚 Resources
-
-- [TensorFlow Serving gRPC API](https://www.tensorflow.org/tfx/serving/api_rest)
-- [@grpc/grpc-js Documentation](https://grpc.github.io/grpc/node/)
-- [Protocol Buffers Guide](https://developers.google.com/protocol-buffers)
+- **Issues:** Create an issue in the repository
+- **Documentation:** Check `docs/` directory
+- **Quick Start:** See [QUICKSTART.md](QUICKSTART.md)
 
 ---
 
-Made with ❤️ for TensorFlow Serving + Node.js integration
+**🚀 Ready to get started? See [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup guide!**

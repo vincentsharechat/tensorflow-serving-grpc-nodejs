@@ -6,9 +6,9 @@
  * with TLS and custom path routing to the BASELINE model.
  */
 
-const { makeIngressRequest, displayResults } = require('./client-ingress');
-const { buildSequenceExample } = require('./sequence-example-builder');
-const config = require('./config');
+const { makeIngressRequest, displayResults } = require('../client-ingress');
+const { buildSequenceExample } = require('../sequence-example-builder');
+const config = require('../config');
 
 async function testBaselineModel() {
   console.log('🧪 Testing BASELINE Model via Ingress\n');

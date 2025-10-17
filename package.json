@@ -4,15 +4,12 @@
   "description": "Node.js gRPC client for TensorFlow Serving with SequenceExample builder and ingress support",
   "main": "client-with-builder.js",
   "scripts": {
-    "test-proto": "node src/test-proto.js",
-    "test-connection": "node src/test-connection.js",
-    "test-request": "node src/test-request.js",
-    "test-serialization": "node test-serialization.js",
-    "test-ingress-baseline": "node test-ingress-baseline.js",
-    "test-ingress-all": "node test-ingress-all-models.js",
-    "client-pod": "node client-with-builder.js",
-    "client-ingress": "node client-ingress.js",
-    "builder-demo": "node sequence-example-builder.js"
+    "test": "node tests/test-serialization.js",
+    "test:ingress": "node tests/test-ingress-baseline.js",
+    "test:ingress:all": "node tests/test-ingress-all-models.js",
+    "client:pod": "node client-with-builder.js",
+    "client:ingress": "node client-ingress.js",
+    "demo": "node sequence-example-builder.js"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.9.0",

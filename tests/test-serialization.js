@@ -3,7 +3,7 @@
  * Test script to verify SequenceExample serialization matches Python
  */
 
-const { buildSequenceExample, toHex } = require('./sequence-example-builder');
+const { buildSequenceExample, toHex } = require('../sequence-example-builder');
 
 console.log('🧪 Testing SequenceExample Serialization\n');
 

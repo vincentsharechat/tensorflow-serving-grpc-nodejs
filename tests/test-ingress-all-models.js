@@ -10,9 +10,9 @@
  * Compares predictions across models to verify routing works correctly.
  */
 
-const { makeIngressRequest } = require('./client-ingress');
-const { buildSequenceExample } = require('./sequence-example-builder');
-const config = require('./config');
+const { makeIngressRequest } = require('../client-ingress');
+const { buildSequenceExample } = require('../sequence-example-builder');
+const config = require('../config');
 
 // Test data
 const featureListsData = {
