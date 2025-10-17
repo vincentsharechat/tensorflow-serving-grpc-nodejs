@@ -1,16 +1,32 @@
 {
   "name": "grpc-inference-client",
   "version": "1.0.0",
-  "description": "Simple gRPC client for DNB inference service",
-  "main": "src/client.js",
+  "description": "Node.js gRPC client for TensorFlow Serving with SequenceExample builder and ingress support",
+  "main": "client-with-builder.js",
   "scripts": {
     "test-proto": "node src/test-proto.js",
     "test-connection": "node src/test-connection.js",
-    "test-request": "node src/test-request.js"
+    "test-request": "node src/test-request.js",
+    "test-serialization": "node test-serialization.js",
+    "test-ingress-baseline": "node test-ingress-baseline.js",
+    "test-ingress-all": "node test-ingress-all-models.js",
+    "client-pod": "node client-with-builder.js",
+    "client-ingress": "node client-ingress.js",
+    "builder-demo": "node sequence-example-builder.js"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.9.0",
     "@grpc/proto-loader": "^0.7.10",
     "protobufjs": "^7.5.4"
-  }
+  },
+  "keywords": [
+    "grpc",
+    "tensorflow-serving",
+    "protobuf",
+    "inference",
+    "machine-learning",
+    "sequence-example"
+  ],
+  "author": "",
+  "license": "MIT"
 }

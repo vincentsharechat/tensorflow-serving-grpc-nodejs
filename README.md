@@ -75,7 +75,48 @@ node client-with-builder.js
 
 **Documentation:** See [SEQUENCE_EXAMPLE_GUIDE.md](SEQUENCE_EXAMPLE_GUIDE.md) for full API reference
 
-### Option 2: Pre-serialize with Python
+### Option 2: Connect via Ingress with TLS (NEW! 🔐)
+
+Connect to TensorFlow Serving via ingress with TLS encryption and custom path routing:
+
+```javascript
+const { makeIngressRequest } = require('./client-ingress');
+const { buildSequenceExample } = require('./sequence-example-builder');
+const config = require('./config');
+
+// Build features and serialize
+const features = { "ad_type": ["SC_CPCV_1"], /* ... */ };
+const serialized = buildSequenceExample(features);
+
+// Make request via ingress
+const response = await makeIngressRequest({
+  serializedExample: serialized,
+  modelName: config.MODELS.BASELINE.name,
+  signatureName: config.MODELS.BASELINE.signature,
+  ingressHost: config.INGRESS.HOST,
+  modelPath: config.MODELS.BASELINE.path,  // BASELINE/CONSERVATIVE/AGGRESSIVE
+  port: 443,
+  caCertPath: 'ingress.crt'
+});
+```
+
+**Run ingress examples:**
+```bash
+# Test BASELINE model
+node test-ingress-baseline.js
+
+# Test all three models (BASELINE, CONSERVATIVE, AGGRESSIVE)
+node test-ingress-all-models.js
+
+# Run client directly
+node client-ingress.js
+```
+
+**Documentation:** See [INGRESS_GUIDE.md](INGRESS_GUIDE.md) for complete setup and troubleshooting
+
+**Prerequisites:** Valid TLS certificate (`ingress.crt`) required. See ingress guide for obtaining certificate.
+
+### Option 3: Pre-serialize with Python
 
 1. **Serialize your SequenceExample in Python:**
 
@@ -145,12 +186,19 @@ grpc-inference-client/
 │   ├── predict.proto              # TF Serving prediction service (FIXED field numbers)
 │   ├── tensor.proto               # TensorFlow tensor definitions
 │   └── example.proto              # SequenceExample format (with FeatureLists wrapper)
-├── sequence-example-builder.js    # ⭐ NEW: Build & serialize SequenceExample
-├── client-with-builder.js         # ⭐ NEW: Full gRPC client with builder
-├── test-serialization.js          # ⭐ NEW: Test suite
+├── config.js                      # 🔐 NEW: Centralized configuration (pods & ingress)
+├── sequence-example-builder.js    # ⭐ Build & serialize SequenceExample
+├── client-with-builder.js         # ⭐ gRPC client with builder (pod connection)
+├── client-ingress.js              # 🔐 NEW: Ingress client with TLS & custom paths
+├── test-serialization.js          # ⭐ Serialization test suite
+├── test-ingress-baseline.js       # 🔐 NEW: Test BASELINE model via ingress
+├── test-ingress-all-models.js     # 🔐 NEW: Test all model variants via ingress
 ├── final-working-client.js        # ✅ Original working example (pre-serialized hex)
-├── SEQUENCE_EXAMPLE_GUIDE.md      # ⭐ NEW: Complete builder documentation
-├── BUGFIX_SUMMARY.md              # ⭐ NEW: Technical proto structure details
+├── SEQUENCE_EXAMPLE_GUIDE.md      # ⭐ Complete builder documentation
+├── INGRESS_GUIDE.md               # 🔐 NEW: Ingress setup & troubleshooting
+├── BUGFIX_SUMMARY.md              # ⭐ Technical proto structure details
+├── COMPLETION_SUMMARY.md          # ⭐ Implementation summary
+├── ingress.crt                    # 🔐 TLS certificate (obtain separately)
 ├── package.json
 └── README.md
 ```
