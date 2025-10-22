@@ -9,6 +9,7 @@
     "test:ingress:all": "node tests/test-ingress-all-models.js",
     "client:pod": "node client-with-builder.js",
     "client:ingress": "node client-ingress.js",
+    "client:ingress:all": "node client-ingress-all.js",
     "demo": "node sequence-example-builder.js"
   },
   "dependencies": {

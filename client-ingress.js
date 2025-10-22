@@ -18,6 +18,7 @@ const path = require('path');
 const fs = require('fs');
 const { buildSequenceExample, toHex } = require('./sequence-example-builder');
 const config = require('./config');
+const { getExample, getCount } = require('./feature-examples');
 
 /**
  * Makes a gRPC prediction request to TensorFlow Serving via ingress
@@ -246,23 +247,14 @@ function displayResults(response) {
 if (require.main === module) {
   (async () => {
     try {
-      // Example feature data
-      const featureListsData = {
-        "ad_type": ["SC_CPCV_1"],
-        "adsuuid": ["0532afbb-3c85-4776-b5c6-d908a47c1441"],
-        "ageRange": ["18-24"],
-        "city": ["koppal"],
-        "feed_fetch_counter": ["1"],
-        "gender": ["F"],
-        "language": ["tamil"],
-        "osVersion": ["rest"],
-        "phoneCarrier": ["ind airtel"],
-        "phoneModel": ["oppo cph2681"],
-        "sourceApp": ["SC"],
-        "state": ["karnataka"],
-        "time": ["2025-10-10 22:02:24"],
-        "userid": ["749603295"]
-      };
+      // Get example index from command line argument, default to 0
+      const exampleIndex = parseInt(process.argv[2], 10) || 0;
+
+      console.log(`📚 Available examples: ${getCount()}`);
+      console.log(`📍 Using example ${exampleIndex} of ${getCount() - 1}\n`);
+
+      // Get feature example data
+      const featureListsData = getExample(exampleIndex);
 
       console.log('📝 Building SequenceExample...');
       const serializedExample = buildSequenceExample(featureListsData);
