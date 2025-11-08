@@ -1,6 +1,6 @@
 # TensorFlow Serving gRPC Client for Node.js
 
-Complete Node.js solution for TensorFlow Serving with SequenceExample serialization, direct pod access, and production-ready ingress connectivity with TLS.
+Complete Node.js solution for TensorFlow Serving with SequenceExample serialization, direct pod access, production-ready ingress connectivity with TLS, and Scylla DB integration for historical features.
 
 ## Features
 
@@ -8,6 +8,8 @@ Complete Node.js solution for TensorFlow Serving with SequenceExample serializat
 - ✅ **Direct Pod Access** - Fast development connectivity (port 9500)
 - ✅ **Ingress with TLS** - Production-ready with certificate authentication (port 443)
 - ✅ **Custom Path Routing** - Support for multiple model variants (BASELINE/CONSERVATIVE/AGGRESSIVE)
+- ✅ **Scylla DB Integration** - Retrieve historical features for inference (21B requests/day scale)
+- ✅ **Complete Pipeline** - End-to-end from Scylla DB to predictions
 - ✅ **Comprehensive Testing** - Full test suite with validation against Python output
 
 ## Quick Start
@@ -19,14 +21,21 @@ npm install
 # Test serialization
 npm test
 
+# Test Scylla DB connection
+npm run test:scylla
+
 # Connect via pod (development)
 npm run client:pod
 
 # Connect via ingress (production)
 npm run client:ingress
+
+# Complete pipeline with Scylla DB
+npm run client:scylla
 ```
 
 **👉 See [QUICKSTART.md](QUICKSTART.md) for detailed 5-minute setup guide**
+**👉 See [docs/SCYLLA_INTEGRATION_GUIDE.md](docs/SCYLLA_INTEGRATION_GUIDE.md) for Scylla DB setup**
 
 ## Project Structure
 
@@ -34,10 +43,12 @@ npm run client:ingress
 grpc-inference-client/
 ├── QUICKSTART.md                    # 5-minute getting started guide
 ├── README.md                        # This file
-├── config.js                        # Centralized configuration
+├── config.js                        # Centralized configuration (includes Scylla)
 ├── sequence-example-builder.js      # SequenceExample serialization
+├── scylla-client.js                 # Scylla DB client for historical features
 ├── client-with-builder.js           # Pod client (development)
 ├── client-ingress.js                # Ingress client (production)
+├── client-with-scylla.js            # Complete pipeline with Scylla DB
 ├── proto/                           # Protocol Buffer definitions
 │   ├── predict.proto
 │   ├── tensor.proto
@@ -45,10 +56,12 @@ grpc-inference-client/
 ├── tests/                           # Test scripts
 │   ├── test-serialization.js
 │   ├── test-ingress-baseline.js
-│   └── test-ingress-all-models.js
+│   ├── test-ingress-all-models.js
+│   └── test-scylla-connection.js   # Scylla DB connection test
 ├── docs/                            # Documentation
 │   ├── SEQUENCE_EXAMPLE_GUIDE.md   # Serialization API reference
 │   ├── INGRESS_GUIDE.md            # Ingress setup & troubleshooting
+│   ├── SCYLLA_INTEGRATION_GUIDE.md # Scylla DB integration guide
 │   ├── BUGFIX_SUMMARY.md           # Proto structure fix details
 │   ├── COMPLETION_SUMMARY.md       # SequenceExample implementation
 │   ├── INGRESS_IMPLEMENTATION_SUMMARY.md  # Ingress implementation
@@ -110,6 +123,43 @@ const response = await makeIngressRequest({
 npm run client:ingress
 ```
 
+### 4. Complete Pipeline with Scylla DB
+
+```javascript
+const { runInferencePipeline } = require('./client-with-scylla');
+
+// Fetch historical features from Scylla + make inference
+const result = await runInferencePipeline(
+  '2312341',  // GAID
+  {           // Real-time features
+    ad_type: ['SC_CPCV_1'],
+    userid: ['123456'],
+    ageRange: ['18-24']
+  }
+);
+
+console.log(result.predictions);
+```
+
+```bash
+npm run client:scylla
+```
+
+### 5. Scylla DB Only
+
+```javascript
+const ScyllaClient = require('./scylla-client');
+
+const client = new ScyllaClient();
+await client.connect();
+
+// Get historical features
+const features = await client.getHistoricalFeaturesWithDefaults('2312341');
+console.log(features);
+
+await client.close();
+```
+
 ## Model Variants
 
 Three model variants available via ingress:
@@ -127,10 +177,12 @@ Three model variants available via ingress:
 npm test                  # Run serialization tests
 npm test:ingress          # Test BASELINE model via ingress
 npm test:ingress:all      # Test all model variants
+npm test:scylla           # Test Scylla DB connection
 
 # Clients
 npm run client:pod        # Connect via pod (development)
 npm run client:ingress    # Connect via ingress (production)
+npm run client:scylla     # Complete pipeline with Scylla DB
 
 # Demo
 npm run demo              # Demo serialization builder
@@ -142,6 +194,19 @@ Edit `config.js` to customize:
 
 ```javascript
 module.exports = {
+  SCYLLA: {
+    CONTACT_POINTS: [
+      'node-0.gce-asia-south-1.05be2fa55045b1fb2113.clusters.scylla.cloud',
+      'node-1.gce-asia-south-1.05be2fa55045b1fb2113.clusters.scylla.cloud',
+      'node-2.gce-asia-south-1.05be2fa55045b1fb2113.clusters.scylla.cloud'
+    ],
+    CREDENTIALS: {
+      username: process.env.SCYLLA_USERNAME || 'cassandra',
+      password: process.env.SCYLLA_PASSWORD || 'cassandra'
+    },
+    KEYSPACE: 'ads_features',
+    LOCAL_DC: 'gce-asia-south-1'
+  },
   POD: {
     ENDPOINT: '100.68.113.134:9500',
     PORT: 9500,
@@ -171,6 +236,7 @@ module.exports = {
 - **[QUICKSTART.md](QUICKSTART.md)** - Get started in 5 minutes
 - **[docs/SEQUENCE_EXAMPLE_GUIDE.md](docs/SEQUENCE_EXAMPLE_GUIDE.md)** - Complete serialization API
 - **[docs/INGRESS_GUIDE.md](docs/INGRESS_GUIDE.md)** - Ingress setup & troubleshooting
+- **[docs/SCYLLA_INTEGRATION_GUIDE.md](docs/SCYLLA_INTEGRATION_GUIDE.md)** - Scylla DB integration
 
 ### Implementation Details
 
@@ -306,12 +372,65 @@ Matches TensorFlow's official `tensorflow/core/example/example.proto`:
 - `SequenceExample` → `FeatureLists` → `FeatureList` → `Feature`
 - Supports `bytes_list`, `int64_list`, `float_list`
 
+## Architecture with Scylla Integration
+
+```
+┌─────────────┐
+│  Request    │ GAID: "2312341"
+│  (GAID)     │ + Real-time Features
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────────────────────┐
+│  1. Scylla DB Query                 │
+│     - Fetch historical features     │
+│     - Use prepared statements       │
+│     - Connection pooling            │
+└──────┬──────────────────────────────┘
+       │ Historical:
+       │ - historical_ctr
+       │ - historical_cvr
+       │ - avg_watch_time
+       │ - engagement_score
+       ▼
+┌─────────────────────────────────────┐
+│  2. Feature Merge                   │
+│     Historical + Real-time          │
+└──────┬──────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────┐
+│  3. SequenceExample Builder         │
+│     Serialize features              │
+└──────┬──────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────┐
+│  4. TF Serving gRPC Inference       │
+│     - TLS/SSL (port 443)            │
+│     - Custom path routing           │
+│     - Model: dnb_model_baseline     │
+└──────┬──────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────┐
+│  5. Predictions                     │
+│     - predicted_ctr                 │
+│     - optimal_floor_price           │
+│     - fill_probability              │
+└─────────────────────────────────────┘
+```
+
+**Scale:** Designed to handle 21 billion requests/day
+
 ## Performance
 
 | Connection Type | Latency | Notes |
 |----------------|---------|-------|
+| Scylla DB Query | ~5-10ms | With prepared statements |
 | Direct Pod | ~100ms | Baseline |
 | Via Ingress (TLS) | ~150-200ms | +50-100ms overhead |
+| **Complete Pipeline** | **~160-210ms** | **Scylla + Inference** |
 
 ## Dependencies
 
@@ -319,7 +438,8 @@ Matches TensorFlow's official `tensorflow/core/example/example.proto`:
 {
   "@grpc/grpc-js": "^1.9.0",
   "@grpc/proto-loader": "^0.7.10",
-  "protobufjs": "^7.5.4"
+  "protobufjs": "^7.5.4",
+  "cassandra-driver": "^4.7.2"
 }
 ```
 
