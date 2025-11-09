@@ -50,10 +50,11 @@ class SimpleInferenceClient {
 
     // Prepare query for ARS feature store format
     // Key format: userid|ad_type|sourceApp
+    // Feature set: dnb_historical_features
     this.preparedQuery = await this.scyllaClient.prepare(`
       SELECT featuresetid, featureversionid, value
       FROM ars_feature_store.ars_user_features_v2
-      WHERE id = ?
+      WHERE id = ? AND featuresetid = 'dnb_historical_features'
     `);
 
     // Load protobuf definitions
