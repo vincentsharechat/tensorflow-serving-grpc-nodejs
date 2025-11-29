@@ -45,27 +45,27 @@ module.exports = {
   // ==================== MODEL PATHS ====================
   // Custom paths for ingress routing to different model variants
   MODEL_PATHS: {
-    BASELINE: 'ADS_LST_DNB_BASELINE',
-    CONSERVATIVE: 'ADS_LST_DNB_CONSERVATIVE',
-    AGGRESSIVE: 'ADS_LST_DNB_AGGRESSIVE'
+    BASELINE: 'ads-dnb-baseline-v1/sparse',
+    CONSERVATIVE: 'ads-dnb-conservative-v1/sparse',
+    AGGRESSIVE: 'ads-dnb-aggressive-v1/sparse'
   },
 
   // ==================== MODEL CONFIGURATION ====================
   MODELS: {
     BASELINE: {
-      name: 'dnb_model_baseline',
+      name: 'dnb-model-baseline-v1',
       signature: 'serving_default',
-      path: 'ADS_LST_DNB_BASELINE'
+      path: 'ads-dnb-baseline-v1/sparse'
     },
     CONSERVATIVE: {
-      name: 'dnb_model_conservative',
+      name: 'dnb-model-conservative-v1',
       signature: 'serving_default',
-      path: 'ADS_LST_DNB_CONSERVATIVE'
+      path: 'ads-dnb-conservative-v1/sparse'
     },
     AGGRESSIVE: {
-      name: 'dnb_model_aggressive',
+      name: 'dnb-model-aggressive-v1',
       signature: 'serving_default',
-      path: 'ADS_LST_DNB_AGGRESSIVE'
+      path: 'ads-dnb-aggressive-v1/sparse'
     }
   },
 
