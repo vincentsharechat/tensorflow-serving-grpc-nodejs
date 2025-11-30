@@ -58,12 +58,12 @@ module.exports = {
       path: 'ads-dnb-baseline-v1/sparse'
     },
     CONSERVATIVE: {
-      name: 'ads-dnb-baseline-v1',
+      name: 'ads-dnb-conservative-v1',
       signature: 'serving_default',
       path: 'ads-dnb-conservative-v1/sparse'
     },
     AGGRESSIVE: {
-      name: 'ads-dnb-baseline-v1',
+      name: 'ads-dnb-aggressive-v1',
       signature: 'serving_default',
       path: 'ads-dnb-aggressive-v1/sparse'
     }
