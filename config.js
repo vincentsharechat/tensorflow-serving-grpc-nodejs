@@ -53,17 +53,17 @@ module.exports = {
   // ==================== MODEL CONFIGURATION ====================
   MODELS: {
     BASELINE: {
-      name: 'dnb-model-baseline-v1',
+      name: 'ads-dnb-baseline-v1',
       signature: 'serving_default',
       path: 'ads-dnb-baseline-v1/sparse'
     },
     CONSERVATIVE: {
-      name: 'dnb-model-conservative-v1',
+      name: 'ads-dnb-baseline-v1',
       signature: 'serving_default',
       path: 'ads-dnb-conservative-v1/sparse'
     },
     AGGRESSIVE: {
-      name: 'dnb-model-aggressive-v1',
+      name: 'ads-dnb-baseline-v1',
       signature: 'serving_default',
       path: 'ads-dnb-aggressive-v1/sparse'
     }
