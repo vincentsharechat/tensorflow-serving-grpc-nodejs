@@ -11,6 +11,7 @@
     "client:pod": "node client-with-builder.js",
     "client:ingress": "node client-ingress.js",
     "client:ingress:all": "node client-ingress-all.js",
+    "client:ingress_all": "node client-ingress-all.js",
     "client:scylla": "node client-with-scylla.js",
     "demo": "node sequence-example-builder.js"
   },

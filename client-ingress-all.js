@@ -96,16 +96,19 @@ async function scoreAllExamples() {
 }
 
 /**
- * Display results in a formatted table
+ * Display results in a formatted table with all model variants
  */
 function displaySummaryTable(results) {
   console.log('\n\n');
 
-  // Collect all unique prediction keys to determine column structure
+  // Collect all unique prediction keys from all models
   const predictionKeys = new Set();
   for (const result of results) {
-    if (result.predictions) {
-      Object.keys(result.predictions).forEach(key => predictionKeys.add(key));
+    for (const variant of MODEL_VARIANTS) {
+      const modelResult = result.models[variant];
+      if (modelResult && modelResult.predictions) {
+        Object.keys(modelResult.predictions).forEach(key => predictionKeys.add(key));
+      }
     }
   }
   const sortedKeys = Array.from(predictionKeys).sort();
@@ -113,70 +116,93 @@ function displaySummaryTable(results) {
   // Define column widths
   const colWidth = {
     index: 5,
-    status: 10,
-    adType: 25,
-    pred: 18  // Per prediction column
+    adType: 20,
+    model: 14,
+    status: 4,
+    pred: 16
   };
 
-  // Calculate total width
-  const totalWidth = colWidth.index + 3 + colWidth.status + 3 + colWidth.adType + 3 + (sortedKeys.length * (colWidth.pred + 1));
+  const totalWidth = 150;
 
-  console.log('═'.repeat(Math.min(totalWidth + 10, 200)));
-  console.log('📋 RESULTS SUMMARY\n');
+  console.log('═'.repeat(totalWidth));
+  console.log('📋 RESULTS SUMMARY - ALL MODELS\n');
 
   // Create table headers
   let headerLine =
     'Index'.padEnd(colWidth.index) + ' | ' +
-    'Status'.padEnd(colWidth.status) + ' | ' +
     'Ad Type'.padEnd(colWidth.adType) + ' | ' +
-    sortedKeys.map(k => k.padEnd(colWidth.pred)).join(' | ');
+    'Model'.padEnd(colWidth.model) + ' | ' +
+    'OK'.padEnd(colWidth.status) + ' | ' +
+    sortedKeys.map(k => k.substring(0, colWidth.pred).padEnd(colWidth.pred)).join(' | ');
 
   console.log(headerLine);
-  console.log('─'.repeat(Math.min(totalWidth + 10, 200)));
+  console.log('─'.repeat(totalWidth));
 
-  // Display each result
+  // Display each result with all model variants
   for (const result of results) {
-    const status = result.status;
     const description = (result.description || 'Unknown').substring(0, colWidth.adType);
 
-    let line =
-      String(result.index).padEnd(colWidth.index) + ' | ' +
-      status.padEnd(colWidth.status) + ' | ' +
-      description.padEnd(colWidth.adType) + ' | ';
+    for (let mi = 0; mi < MODEL_VARIANTS.length; mi++) {
+      const variant = MODEL_VARIANTS[mi];
+      const modelResult = result.models[variant];
 
-    // Add prediction values in fixed order
-    if (result.predictions) {
-      const predValues = sortedKeys.map(key => {
-        const val = result.predictions[key];
-        if (val !== undefined && val !== null) {
-          const numVal = typeof val === 'number' ? val.toFixed(4) : String(val);
-          return numVal.padEnd(colWidth.pred);
-        }
-        return 'N/A'.padEnd(colWidth.pred);
-      });
-      line += predValues.join(' | ');
-    } else if (result.error) {
-      line += result.error.substring(0, colWidth.pred);
+      // Only show index and ad type on first model row
+      const indexStr = mi === 0 ? String(result.index) : '';
+      const adTypeStr = mi === 0 ? description : '';
+
+      let line =
+        indexStr.padEnd(colWidth.index) + ' | ' +
+        adTypeStr.padEnd(colWidth.adType) + ' | ' +
+        variant.padEnd(colWidth.model) + ' | ' +
+        (modelResult?.status || '❓').padEnd(colWidth.status) + ' | ';
+
+      if (modelResult && modelResult.predictions) {
+        const predValues = sortedKeys.map(key => {
+          const val = modelResult.predictions[key];
+          if (val !== undefined && val !== null) {
+            const numVal = typeof val === 'number' ? val.toFixed(4) : String(val);
+            return numVal.substring(0, colWidth.pred).padEnd(colWidth.pred);
+          }
+          return 'N/A'.padEnd(colWidth.pred);
+        });
+        line += predValues.join(' | ');
+      } else if (modelResult && modelResult.error) {
+        line += modelResult.error.substring(0, 40);
+      }
+
+      console.log(line);
     }
-
-    console.log(line);
+    console.log('─'.repeat(totalWidth));
   }
 
-  console.log('═'.repeat(Math.min(totalWidth + 10, 200)));
+  console.log('═'.repeat(totalWidth));
 
-  // Display statistics
-  const successful = results.filter((r) => r.status === '✅ SUCCESS').length;
-  const failed = results.filter((r) => r.status === '❌ FAILED').length;
+  // Display statistics per model
+  console.log('\n📊 Statistics by Model:');
+  for (const variant of MODEL_VARIANTS) {
+    const successful = results.filter(r => r.models[variant]?.status === '✅').length;
+    const failed = results.filter(r => r.models[variant]?.status === '❌').length;
+    console.log(`   ${variant}: ✅ ${successful}/${results.length} | ❌ ${failed}/${results.length}`);
+  }
 
-  console.log('\n📊 Statistics:');
-  console.log(`   ✅ Successful: ${successful}/${results.length}`);
-  console.log(`   ❌ Failed: ${failed}/${results.length}`);
-  console.log(`   ⏱️  Total: ${results.length} examples processed\n`);
+  // Overall stats
+  const totalCalls = results.length * MODEL_VARIANTS.length;
+  let totalSuccess = 0;
+  let totalFailed = 0;
+  for (const result of results) {
+    for (const variant of MODEL_VARIANTS) {
+      if (result.models[variant]?.status === '✅') totalSuccess++;
+      if (result.models[variant]?.status === '❌') totalFailed++;
+    }
+  }
 
-  if (failed === 0) {
-    console.log('🎉 All examples scored successfully!\n');
+  console.log(`\n   📈 Overall: ${totalSuccess}/${totalCalls} successful (${((totalSuccess/totalCalls)*100).toFixed(1)}%)`);
+  console.log(`   ⏱️  Total: ${results.length} examples × ${MODEL_VARIANTS.length} models = ${totalCalls} predictions\n`);
+
+  if (totalFailed === 0) {
+    console.log('🎉 All predictions successful across all models!\n');
   } else {
-    console.log(`⚠️  ${failed} example(s) failed. Review errors above.\n`);
+    console.log(`⚠️  ${totalFailed} prediction(s) failed. Review errors above.\n`);
   }
 }
 
