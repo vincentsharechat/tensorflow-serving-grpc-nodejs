@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * ✅ TensorFlow Serving Ingress Client - Score All Feature Examples
+ * ✅ TensorFlow Serving Ingress Client - Score All Feature Examples with All Models
  *
- * This script runs predictions on all feature examples and displays
- * results in a formatted table for easy comparison.
+ * This script runs predictions on all feature examples against all model variants
+ * (BASELINE, CONSERVATIVE, AGGRESSIVE) and displays results in a formatted table.
  *
  * Usage:
  *   npm run client:ingress:all
@@ -14,71 +14,81 @@ const { buildSequenceExample } = require('./sequence-example-builder');
 const { getAll, getCount } = require('./feature-examples');
 const config = require('./config');
 
+// Model variants to test
+const MODEL_VARIANTS = ['BASELINE', 'CONSERVATIVE', 'AGGRESSIVE'];
+
 /**
- * Run predictions for all feature examples
+ * Run predictions for all feature examples against all model variants
  */
 async function scoreAllExamples() {
   const examples = getAll();
   const totalCount = getCount();
   const results = [];
 
-  console.log('🚀 Scoring All Feature Examples');
-  console.log(`📊 Total examples: ${totalCount}\n`);
-  console.log('═'.repeat(80));
+  console.log('🚀 Scoring All Feature Examples with All Model Variants');
+  console.log(`📊 Total examples: ${totalCount}`);
+  console.log(`🎯 Models: ${MODEL_VARIANTS.join(', ')}\n`);
+  console.log('═'.repeat(100));
 
   for (let i = 0; i < totalCount; i++) {
-    try {
-      console.log(`\n📍 [${i + 1}/${totalCount}] Processing example ${i}...`);
+    const example = examples[i];
+    const serializedExample = buildSequenceExample(example);
+    const exampleResults = {
+      index: i,
+      description: example.ad_type?.[0] || 'Unknown',
+      models: {}
+    };
 
-      const example = examples[i];
-      const serializedExample = buildSequenceExample(example);
+    console.log(`\n📍 [${i + 1}/${totalCount}] Processing example ${i}...`);
+    console.log(`   ✓ Serialized: ${serializedExample.length} bytes`);
 
-      console.log(`   ✓ Serialized: ${serializedExample.length} bytes`);
-      console.log('   ⏳ Making prediction request...');
+    for (const variant of MODEL_VARIANTS) {
+      const modelConfig = config.MODELS[variant];
 
-      const response = await makeIngressRequest({
-        serializedExample: serializedExample,
-        modelName: config.MODELS.BASELINE.name,
-        signatureName: config.MODELS.BASELINE.signature,
-        ingressHost: config.INGRESS.HOST,
-        modelPath: config.MODELS.BASELINE.path,
-        port: config.INGRESS.PORT,
-        timeout: 5000,
-        caCertPath: config.INGRESS.CERT_PATH
-      });
+      try {
+        console.log(`   ⏳ Requesting ${variant}...`);
 
-      // Extract predictions from response
-      const predictions = {};
-      if (response.outputs) {
-        for (const [outputName, tensor] of Object.entries(response.outputs)) {
-          if (tensor.floatVal && tensor.floatVal.length > 0) {
-            predictions[outputName] = tensor.floatVal[0];
-          } else if (tensor.int64Val && tensor.int64Val.length > 0) {
-            predictions[outputName] = tensor.int64Val[0];
+        const response = await makeIngressRequest({
+          serializedExample: serializedExample,
+          modelName: modelConfig.name,
+          signatureName: modelConfig.signature,
+          ingressHost: config.INGRESS.HOST,
+          modelPath: modelConfig.path,
+          port: config.INGRESS.PORT,
+          timeout: 5000,
+          caCertPath: config.INGRESS.CERT_PATH
+        });
+
+        // Extract predictions from response
+        const predictions = {};
+        if (response.outputs) {
+          for (const [outputName, tensor] of Object.entries(response.outputs)) {
+            if (tensor.floatVal && tensor.floatVal.length > 0) {
+              predictions[outputName] = tensor.floatVal[0];
+            } else if (tensor.int64Val && tensor.int64Val.length > 0) {
+              predictions[outputName] = tensor.int64Val[0];
+            }
           }
         }
+
+        exampleResults.models[variant] = {
+          status: '✅',
+          predictions: predictions
+        };
+
+        console.log(`   ✓ ${variant} predictions received`);
+
+      } catch (error) {
+        console.error(`   ❌ ${variant} Error: ${error.message}`);
+        exampleResults.models[variant] = {
+          status: '❌',
+          error: error.message
+        };
       }
-
-      results.push({
-        index: i,
-        status: '✅ SUCCESS',
-        predictions: predictions,
-        description: example.ad_type?.[0] || 'Unknown'
-      });
-
-      console.log(`   ✓ Predictions received`);
-
-    } catch (error) {
-      console.error(`   ❌ Error: ${error.message}`);
-      results.push({
-        index: i,
-        status: '❌ FAILED',
-        error: error.message,
-        description: examples[i]?.ad_type?.[0] || 'Unknown'
-      });
     }
 
-    console.log('─'.repeat(80));
+    results.push(exampleResults);
+    console.log('─'.repeat(100));
   }
 
   // Display summary table
