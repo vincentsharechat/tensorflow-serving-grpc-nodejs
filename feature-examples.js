@@ -13,7 +13,7 @@
 const featureExamples = [
   {
     // Example 1: High-value user with winning bid
-    ad_type: ["SC_CPCV_2"],
+    ad_type: ["SC_CPCV_1"],
     adsuuid: ["aa8e7f93-7f33-469f-81b0-fb2146e5ee4e"],
     ageRange: ["25-34"],
     city: ["mumbai"],
@@ -29,21 +29,47 @@ const featureExamples = [
     userid: ["2356401887"]
   },
   {
-    // Example 2: Moj app, no response
-    ad_type: ["Moj-Exit-Interstitial"],
-    adsuuid: [""],
-    ageRange: ["18-24"],
-    city: ["thane"],
-    feed_fetch_counter: [""],
+    // Example 2: High-value user with winning bid and historical features
+    // NOTE: Predictions WILL be different from Example 1 because:
+    //   1. Historical features provide strong signals about past performance
+    //   2. Win rate shows consistent 10% fill rate over 1-day and 7-day windows
+    //   3. This context helps model predict fill probability and optimal floor price
+    ad_type: ["SC_CPCV_1"],
+    adsuuid: ["aa8e7f93-7f33-469f-81b0-fb2146e5ee4e"],
+    ageRange: ["25-34"],
+    city: ["mumbai"],
+    feed_fetch_counter: ["2"],
     gender: ["M"],
-    language: ["marathi"],
-    osVersion: ["android 8.0.0 (26)"],
-    phoneCarrier: ["vodafone in"],
-    phoneModel: ["sm-j600g"],
-    sourceApp: ["MJ"],
+    language: ["punjabi"],
+    osVersion: ["rest"],
+    phoneCarrier: ["airtel"],
+    phoneModel: ["samsung sm-g960w"],
+    sourceApp: ["SC"],
     state: ["maharashtra"],
-    time: ["2025-10-20 11:50:14"],
-    userid: ["59834594701"]
+    time: ["2025-10-20 15:34:24"],
+    userid: ["2356401887"],
+    // 1-Day Historical Aggregates (slots 25-33)
+    // CORRECTED VALUES: All numeric (not strings), mathematically consistent
+    requests_1_day: [1500],          // 1500 requests in last 24h
+    responses_1_day: [150],          // 150 fills (FIXED: was 1500)
+    floor_price_sum_1_day: [4500.04], // Sum of floor prices
+    winning_bid_sum_1_day: [5250.05], // Sum of winning bids
+    winrate_1_day: [0.10],           // 150/1500 = 0.10 (10% fill rate)
+    floor_price_avg_1_day: [30.02],   // 4500/150 = 30.0 (FIXED: was 60.0)
+    floor_price_max_1_day: [150.01],  // Maximum floor price (FIXED: removed quotes)
+    winning_bid_avg_1_day: [35.05],   // 5250/150 = 35.0 (FIXED: was 90.0)
+    winning_bid_max_1_day: [200.02],  // Maximum winning bid observed
+    // 7-Day Historical Aggregates (slots 34-42)
+    // CORRECTED VALUES: Consistent with 1-day patterns
+    requests_7_day: [12000],         // 12000 requests in 7 days (FIXED: was 2000)
+    responses_7_day: [1200],         // 1200 fills (FIXED: was 2000)
+    floor_price_sum_7_day: [36000.05],// Sum over 7 days (FIXED: removed quotes)
+    winning_bid_sum_7_day: [42000.06],// Sum over 7 days
+    winrate_7_day: [0.10],           // 1200/12000 = 0.10 (consistent with 1-day)
+    floor_price_avg_7_day: [30.01],   // 36000/1200 = 30.0 (FIXED: was 90.0)
+    floor_price_max_7_day: [200.05],  // Max floor price remains same
+    winning_bid_avg_7_day: [35.02],   // 42000/1200 = 35.0 (FIXED: was 200.0)
+    winning_bid_max_7_day: [250.01]   // Max winning bid slightly higher
   },
   {
     // Example 3: Tamil language, female user
